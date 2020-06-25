@@ -1,14 +1,14 @@
 name:                LeaseReport
 version:             0.1.0.0
--- synopsis:
--- description:
-homepage:            https://github.com/githubuser/LeaseReport#readme
+synopsis:            A tool to inspect leases on shares on a Tahoe-LAFS storage server.
+description:
+homepage:            https://github.com/PrivateStorageio/LeaseReport#readme
 license:             BSD3
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2020 Author name here
-category:            Web
+author:              Jean-Paul Calderone
+maintainer:          exarkun@twistedmatrix.com
+copyright:           2020 PrivateStorage.io, LLC
+category:            Cryptography
 build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  README.md
