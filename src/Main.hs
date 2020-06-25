@@ -92,7 +92,7 @@ determineShareKind :: FilePath -> IO ShareKind
 determineShareKind path =
   let
     magic :: BL.ByteString
-    magic = "tahoe mutable container v1\x75\x09\x44\x03\x8e"
+    magic = "tahoe mutable container\nv1\x75\x09\x44\x03\x8e"
   in
     withBinaryFile path ReadMode $ \share ->
     do
