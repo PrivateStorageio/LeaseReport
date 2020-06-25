@@ -3,7 +3,7 @@ version:             0.1.0.0
 synopsis:            A tool to inspect leases on shares on a Tahoe-LAFS storage server.
 description:
 homepage:            https://github.com/PrivateStorageio/LeaseReport#readme
-license:             BSD3
+license:             Apache-2.0
 license-file:        LICENSE
 author:              Jean-Paul Calderone
 maintainer:          exarkun@twistedmatrix.com
