@@ -93,7 +93,9 @@ determineShareKind :: FilePath -> IO ShareKind
 determineShareKind path =
   let
     magic :: BL.ByteString
-    magic = "tahoe mutable container\nv1\x75\x09\x44\x03\x8e"
+    -- Don't believe the comment in mutable.py, the implementation uses a
+    -- capital t for Tahoe.
+    magic = "Tahoe mutable container v1\n\x75\x09\x44\x03\x8e"
   in
     withBinaryFile path ReadMode $ \share ->
     do
