@@ -18,10 +18,7 @@ import Data.Time.Calendar
 import Data.Time.Clock
   ( UTCTime(UTCTime)
   , DiffTime
-  , secondsToDiffTime
-  )
-import Data.Time.Clock.POSIX
-  ( posixSecondsToUTCTime
+  , addUTCTime
   )
 
 import Data.Text
@@ -156,7 +153,10 @@ readImmutableLeases path =
 
 toUTCTime :: Integer -> UTCTime
 toUTCTime posixTimestamp =
-  UTCTime (fromGregorian 1970 1 0) (secondsToDiffTime posixTimestamp)
+  let
+    epoch = UTCTime (fromGregorian 1970 1 1) 0
+  in
+    addUTCTime (fromInteger posixTimestamp) epoch
 
 readMutableLeases :: FilePath -> IO [LeaseInfo]
 readMutableLeases path = return []
