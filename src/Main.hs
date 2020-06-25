@@ -48,6 +48,7 @@ import qualified Data.ByteString.Lazy as BL
 import Data.Binary.Get
   ( Get
   , getWord32be
+  , getWord64be
   , getLazyByteString
   , runGet
   )
@@ -105,15 +106,14 @@ determineShareKind path =
 getLeases :: FilePath -> IO PathReport
 getLeases sharefile = do
   kind <- determineShareKind sharefile
-  case kind of
-    Immutable -> do
-      result <- readImmutableLeases sharefile
-      case result of
-        Left reason -> return . Failed $ reason
-        Right leases -> return . PathReport $ leases
-    Mutable -> do
-      leases <- readMutableLeases sharefile
-      return . PathReport $ leases
+  let reader =
+        case kind of
+          Immutable -> readImmutableLeases
+          Mutable -> readMutableLeases
+  result <- reader sharefile
+  case result of
+    Left reason -> return . Failed $ reason
+    Right leases -> return . PathReport $ leases
 
 
 deserializeImmutableHeader :: Get (Integer, Integer, Integer)
@@ -151,15 +151,63 @@ readImmutableLeases path =
           in
             return . Right $ [LeaseInfo . ExpirationTime . toUTCTime $ expiration]
 
+deserializeMutableLease :: Get (Integer, Integer, BL.ByteString, BL.ByteString, BL.ByteString)
+deserializeMutableLease = do
+  ownerId <- getWord32be
+  expiration <- getWord32be
+  renew <- getLazyByteString 32
+  cancel <- getLazyByteString 32
+  nodeid <- getLazyByteString 20
+  return ( toInteger ownerId
+         , toInteger expiration
+         , renew
+         , cancel
+         , nodeid
+         )
+
+deserializeMutableHeader :: Get (BL.ByteString, BL.ByteString, Integer, Integer, [(Integer, Integer, BL.ByteString, BL.ByteString, BL.ByteString)])
+deserializeMutableHeader = do
+  magic <- getLazyByteString 32
+  writeEnablerNodeid <- getLazyByteString 20
+  writeEnabler <- getLazyByteString 32
+  dataSize <- getWord64be
+  extraLeaseOffset <- getWord64be
+  lease1 <- deserializeMutableLease
+  lease2 <- deserializeMutableLease
+  lease3 <- deserializeMutableLease
+  lease4 <- deserializeMutableLease
+  return ( writeEnablerNodeid
+         , writeEnabler
+         , toInteger dataSize
+         , toInteger extraLeaseOffset
+         , [lease1, lease2, lease3, lease4]
+         )
+
+
+readMutableLeases :: FilePath -> IO (Either Text [LeaseInfo])
+readMutableLeases path =
+  withBinaryFile path ReadMode $ \share ->
+  do
+    headerBytes <- BL.hGet share 468
+    if BL.length headerBytes /= 468
+      then return . Left $ "Short header"
+      else
+      let
+        ( writeEnablerNodeid
+          , writeEnabler
+          , dataSize
+          , extraLeaseOffset
+          , leases ) = runGet deserializeMutableHeader headerBytes
+        (leaseOwner, leaseExpiration, leaseRenewal, leaseCancel, nodeid) = head leases
+      in
+        return . Right $ [LeaseInfo . ExpirationTime . toUTCTime $ leaseExpiration]
+
 toUTCTime :: Integer -> UTCTime
 toUTCTime posixTimestamp =
   let
     epoch = UTCTime (fromGregorian 1970 1 1) 0
   in
     addUTCTime (fromInteger posixTimestamp) epoch
-
-readMutableLeases :: FilePath -> IO [LeaseInfo]
-readMutableLeases path = return []
 
 getLeasesCallback :: (FilePath, [FilePath], [FilePath]) -> IO StorageReport
 getLeasesCallback (dir, subdirs, files) = do
